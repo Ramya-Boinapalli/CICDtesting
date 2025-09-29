@@ -1,4 +1,4 @@
-name: Model Training CICD
+name: Model Train CICD
 
 permissions:
   id-token: write
@@ -27,7 +27,7 @@ jobs:
         run: |
           set -e  # stop workflow if any command fails
           pip install -r requirements.txt
-          python train_model.py
+          python Train_model.py
 
           # Create combined report
           echo "RF and LR Model Score" > report.md
