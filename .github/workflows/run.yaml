@@ -1,41 +1,56 @@
-name: Model Train CICD
+name: Model Training CICD
 
+# Permissions required
 permissions:
   id-token: write
   contents: write
 
+# Trigger workflow on push to any branch
 on:
   push:
-    branches:
-      - main
 
 jobs:
-  run:
+  train-model:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout repository
-      - uses: actions/checkout@v3
+      # Step 1: Checkout repo
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      # Setup CML
-      - uses: iterative/setup-cml@v1
+      # Step 2: Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.12
 
-      # Train model and generate reports
-      - name: Train model
-        env:
-          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Step 3: Install dependencies
+      - name: Install dependencies
         run: |
-          set -e  # stop workflow if any command fails
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      # Step 4: Train the model
+      - name: Train model
+        run: |
           python Train_model.py
 
-          # Create combined report
+      # Step 5: Generate combined report for CML
+      - name: Generate report
+        run: |
           echo "RF and LR Model Score" > report.md
           cat scores.txt >> report.md
           
           echo "Confusion Matrix & Feature Importance" > report1.md
           echo '|[](./ConfusionMatrix.png "ConfusionMatrix")' >> report1.md
           echo '|[](./FeatureImportance.png "FeatureImportance")' >> report1.md
-     
-          cat report.md report1.md > combined_file.md
+          
+          cat report.md report1.md >> combined_file.md
+
+      # Step 6: Post report as comment (requires CML)
+      - name: Comment report on PR
+        uses: iterative/cml@v1
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
           cml comment create combined_file.md
